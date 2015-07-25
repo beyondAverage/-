@@ -22,7 +22,7 @@
 
 
 
-- (void)showLimitCell:(LimitCellModel *)cellMode;
+- (void)showLimitCell:(ApplicationInfoModel *)cellMode andIndex:(NSInteger)index;
 
 
 @end

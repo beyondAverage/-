@@ -39,7 +39,7 @@
 }
 
 //给自定义cell赋值
-- (void)showLimitCell:(LimitCellModel *)cellMode
+- (void)showLimitCell:(ApplicationInfoModel *)cellMode andIndex:(NSInteger)index
 {
     //利用url异步加载图片
     [_appImageView setImageWithURL:[NSURL URLWithString:cellMode.iconUrl]];

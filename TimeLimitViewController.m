@@ -9,6 +9,9 @@
 #import "TimeLimitViewController.h"
 #import "LimitCellModel.h"
 #import "LimitTableViewCell.h"
+#import "AFNetworking.h"
+
+#define DepreciateUrl @"http://iappfree.candou.com:8080/free/applications/limited?currency=rmb"
 
 @interface TimeLimitViewController ()<UISearchResultsUpdating>
 {
@@ -39,7 +42,9 @@
     _modelList = [[NSMutableArray alloc] init];
     _searchList = [[NSMutableArray alloc] init];
     
-    [self createDataWithPage:0];
+    NSDictionary *dict = [NSDictionary dictionaryWithObject:@"1" forKey:@"page"];
+    
+    [self createDataWithPage:dict];
     [self createUI];
     [self customBulidLeftButton];
     [self customBulidRightButton];
@@ -108,8 +113,8 @@
             //_tableView.contentInset = UIEdgeInsetsMake(100, 0, 0, 0);
             
         } completion:^(BOOL finished){
-        
-            [self createDataWithPage:_page];
+            [self createDataWithPage:nil];
+            //[self createDataWithPage:_page];
             //_tableView.contentInset = UIEdgeInsetsMake(0, 0, 0, 0);
         
         }];
@@ -124,88 +129,106 @@
         [UIView animateWithDuration:1.0 animations:^(void){
             _tableView.contentInset = UIEdgeInsetsMake(0, 0, 100, 0);
         } completion:^(BOOL finished){
-            
-            [self createDataWithPage:_page];
+            [self createDataWithPage:nil];
+            //[self createDataWithPage:_page];
             _tableView.contentInset = UIEdgeInsetsMake(0, 0, 0, 0);
         
         }];
     }
 }
 
-
-//创建模型列表
-- (void)initialModelListWithApps:(NSArray *)apps
+//使用NetWorking获取数据
+- (void)createDataWithPage:(NSDictionary *)dict
 {
-    for (NSDictionary *app in apps) {
-        LimitCellModel *model = [[LimitCellModel alloc] init];
-        
-        model.starCurrent = [app objectForKey:@"starCurrent"];
-        model.downloads = [app objectForKey:@"downloads"];
-        model.currentPrice = [app objectForKey:@"currentPrice"];
-        model.lastPrice = [app objectForKey:@"lastPrice"];
-        model.priceTrend = [app objectForKey:@"priceTrend"];
-        model.expireDatetime = [app objectForKey:@"expireDatetime"];
-        model.fileSize = [app objectForKey:@"fileSize"];
-        model.shares = [app objectForKey:@"shares"];
-        model.favorites = [app objectForKey:@"favorites"];
-        model.version = [app objectForKey:@"version"];
-        model.descrip = [app objectForKey:@"description"];
-        model.releaseDate = [app objectForKey:@"releaseDate"];
-        model.name = [app objectForKey:@"name"];
-        model.applicationId = [app objectForKey:@"applicationId"];
-        model.slug = [app objectForKey:@"slug"];
-        model.iconUrl = [app objectForKey:@"iconUrl"];
-        
-        
-        [_modelList addObject:model];
-    }
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", nil];
+    [manager GET:DepreciateUrl parameters:nil success:^(AFHTTPRequestOperation *operation,id responseObject){
+        //NSLog(@"%@",responseObject);
+        LimitCellModel *model = [[LimitCellModel alloc] initWithDictionary:responseObject error:nil];
+        NSArray *array = model.applications;
+        //[_modelList addObject:model];
+        [_modelList addObjectsFromArray:array];
+        //重新载入页面
+        [_tableView reloadData];
+    } failure:^(AFHTTPRequestOperation *operation,NSError *error){
+        NSLog(@"failure error = %@",error);
+    }];
 }
 
 
-//创建数据源
-- (void)createDataWithPage:(NSInteger)page
-{
-    NSString *urlString = [NSString stringWithFormat:@"http://iappfree.candou.com:8080/free/applications/limited?currency=rmb&page=%ld",page];
-    NSURL *url = [NSURL URLWithString:urlString];
-    /**--------数据请求三部曲---------**/
-    //创建一个请求
-    NSURLRequest *request = [[NSURLRequest alloc] initWithURL:url];
-    //连接 -->异步请求方式  创建一个连接:由连接对象创建一个新的线程，帮助去下载
-    _urlConnection = [[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:YES];
-    //响应
-}
-#pragma mark --NSURLConnectionDataDelegate数据请求--
-//收到响应将原来的数据源置为空
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
-{
-    _recevierData.length = 0;
-}
-//接受到数据
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
-{
-    //追加数据
-    [_recevierData appendData:data];
-}
-//异步加载的一个特点，即其他函数都已经执行完了，但是都不一定能有数据
-//数据接收完
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection
-{
-    //解析数据
-    id result = [NSJSONSerialization JSONObjectWithData:_recevierData options:NSJSONReadingMutableContainers error:nil];
-    if ([result isKindOfClass:[NSDictionary class]]) {
-        //字典类型
-        NSArray *applications = [result objectForKey:@"applications"];
-        //初始化数据模型
-        [self initialModelListWithApps:applications];
-        //保存源数据
-        [_dataList addObjectsFromArray:applications];
-    }
-    else if ([result isKindOfClass:[NSArray class]])
-    {
-        //数组类型
-    }
-    [_tableView reloadData];
-}
+ //创建模型列表
+//- (void)initialModelListWithApps:(NSArray *)apps
+//{
+//    for (NSDictionary *app in apps) {
+//        LimitCellModel *model = [[LimitCellModel alloc] init];
+//        
+//        model.starCurrent = [app objectForKey:@"starCurrent"];
+//        model.downloads = [app objectForKey:@"downloads"];
+//        model.currentPrice = [app objectForKey:@"currentPrice"];
+//        model.lastPrice = [app objectForKey:@"lastPrice"];
+//        model.priceTrend = [app objectForKey:@"priceTrend"];
+//        model.expireDatetime = [app objectForKey:@"expireDatetime"];
+//        model.fileSize = [app objectForKey:@"fileSize"];
+//        model.shares = [app objectForKey:@"shares"];
+//        model.favorites = [app objectForKey:@"favorites"];
+//        model.version = [app objectForKey:@"version"];
+//        model.descrip = [app objectForKey:@"description"];
+//        model.releaseDate = [app objectForKey:@"releaseDate"];
+//        model.name = [app objectForKey:@"name"];
+//        model.applicationId = [app objectForKey:@"applicationId"];
+//        model.slug = [app objectForKey:@"slug"];
+//        model.iconUrl = [app objectForKey:@"iconUrl"];
+//        
+//        
+//        [_modelList addObject:model];
+//    }
+//}
+//
+//
+////创建数据源
+//- (void)createDataWithPage:(NSInteger)page
+//{
+//    NSString *urlString = [NSString stringWithFormat:@"http://iappfree.candou.com:8080/free/applications/limited?currency=rmb&page=%ld",page];
+//    NSURL *url = [NSURL URLWithString:urlString];
+//    /**--------数据请求三部曲---------**/
+//    //创建一个请求
+//    NSURLRequest *request = [[NSURLRequest alloc] initWithURL:url];
+//    //连接 -->异步请求方式  创建一个连接:由连接对象创建一个新的线程，帮助去下载
+//    _urlConnection = [[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:YES];
+//    //响应
+//}
+//#pragma mark --NSURLConnectionDataDelegate数据请求--
+////收到响应将原来的数据源置为空
+//- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
+//{
+//    _recevierData.length = 0;
+//}
+////接受到数据
+//- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
+//{
+//    //追加数据
+//    [_recevierData appendData:data];
+//}
+////异步加载的一个特点，即其他函数都已经执行完了，但是都不一定能有数据
+////数据接收完
+//- (void)connectionDidFinishLoading:(NSURLConnection *)connection
+//{
+//    //解析数据
+//    id result = [NSJSONSerialization JSONObjectWithData:_recevierData options:NSJSONReadingMutableContainers error:nil];
+//    if ([result isKindOfClass:[NSDictionary class]]) {
+//        //字典类型
+//        NSArray *applications = [result objectForKey:@"applications"];
+//        //初始化数据模型
+//        [self initialModelListWithApps:applications];
+//        //保存源数据
+//        [_dataList addObjectsFromArray:applications];
+//    }
+//    else if ([result isKindOfClass:[NSArray class]])
+//    {
+//        //数组类型
+//    }
+//    [_tableView reloadData];
+//}
 
 //创建UI
 - (void)createUI
@@ -238,7 +261,7 @@
     [_searchList removeAllObjects];
     NSString *searchString = searchController.searchBar.text;
     for (int i=0; i<_modelList.count; i++) {
-        LimitCellModel *model = [_modelList objectAtIndex:i];
+        ApplicationInfoModel *model = [_modelList objectAtIndex:i];
         //根据名字查找
         if ([model.name containsString:searchString]) {
             [_searchList addObject:model];
@@ -271,13 +294,13 @@
     }
     if (_searchController.active)
     {
-        LimitCellModel *model = [_searchList objectAtIndex:indexPath.row];
-        [cell showLimitCell:model];
+        ApplicationInfoModel *model = [_searchList objectAtIndex:indexPath.row];
+        [cell showLimitCell:model andIndex:indexPath.row];
     }
     else
     {
-        LimitCellModel *model = [_modelList objectAtIndex:indexPath.row];
-        [cell showLimitCell:model];
+        ApplicationInfoModel *model = [_modelList objectAtIndex:indexPath.row];
+        [cell showLimitCell:model andIndex:indexPath.row];
     }
     //设置cell的风格
     cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;

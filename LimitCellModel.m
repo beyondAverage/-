@@ -8,6 +8,15 @@
 
 #import "LimitCellModel.h"
 
+@implementation ApplicationInfoModel
+
++ (JSONKeyMapper *)keyMapper
+{
+    return [[JSONKeyMapper alloc] initWithDictionary:[NSDictionary dictionaryWithObjects:@[@"descrip"] forKeys:@[@"description"]]];
+}
+
+@end
+
 
 @implementation LimitCellModel
 
